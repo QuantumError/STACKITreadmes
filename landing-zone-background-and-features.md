@@ -83,7 +83,7 @@ This layer isn't a feature on its own — it's a quality requirement that cuts a
 - A repeatable process (not just repeatable code) for standing up a new customer instance safely
 - No secrets committed to the IaC repository — customer parameters live in config files, actual credentials stay in the secrets manager
 
-## 3. Minimum Viable Product (Solita perspective)
+## 3. Minimum Viable Product (Customer perspective)
 
 TO BE DISCUSSED
 
