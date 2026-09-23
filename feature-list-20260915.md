@@ -35,21 +35,21 @@ Not a feature layer on its own — a quality requirement across **all** layers b
 | ID | Priority | Feature | Description | Status | STACKIT service(s) |
 |---|---|---|---|---|---|
 | L0-01 | 5 | Folder hierarchy | Create, update, and remove project folders that group resources by purpose (e.g. platform components, customer workloads, sandboxes) | **Supported** — `governance` module, `rm_folders` (4 default folders) | Resource Manager |
-| L0-02 | | Consistent naming convention | `<company_code>-<layer>-<component>-<env>` applied to every resource | **Supported** — `naming_pattern` threaded through every module | Resource Manager (naming is a code convention, not a service) |
+| L0-02 | 5 | Consistent naming convention | `<company_code>-<layer>-<component>-<env>` applied to every resource | **Supported** — `naming_pattern` threaded through every module | Resource Manager (naming is a code convention, not a service) |
 | L0-03 | 5 | Org-level roles: owners & auditors | Full-control owners, read-only auditors at the organization level | **Supported** — `governance` module, `organization_owners` / `organization_auditors` | Authorization (IAM) |
 | L0-04 | 5 | Custom roles (narrower than built-in) | Fine-grained roles where owner/auditor/editor are too broad | **Supported** — org-level in `governance` (`custom_roles`) and project-level in `landing-zone` (`custom_roles`) | Authorization (IAM) |
-| L0-05 | | Enforced tagging convention | Required tag keys (cost center, environment, owner) validated, not just applied | **Partial** — a generic `labels` map is applied everywhere, but nothing validates required keys or values | Resource Manager labels |
+| L0-05 | 4 | Enforced tagging convention | Required tag keys (cost center, environment, owner) validated, not just applied | **Partial** — a generic `labels` map is applied everywhere, but nothing validates required keys or values | Resource Manager labels |
 
 ## Layer 1 — Identity & access baseline
 
 | ID | Priority | Feature | Description | Status | STACKIT service(s) |
 |---|---|---|---|---|---|
 | L1-01 | 5 | Human user role assignment | Per-project role grants for named users | **Supported** — `landing-zone` module `role_assignments` (subject = email) | Authorization |
-| L1-02 | | Group-based role assignment | Assign a role to a group instead of listing individual emails | **Missing** — `role_assignments.subject` only accepts a user or service-account email; no group construct exists in the accelerator | Authorization (would need external group→role mapping, not modeled) |
-| L1-03 | | Service accounts for automation | Pipelines authenticate as a dedicated SA, not personal credentials | **Supported** — `management` module provisions an automation SA with a 60-day rotating key (90-day TTL) | Service Accounts, Secrets Manager |
-| L1-04 | | Workload-scoped service account | Each workload gets its own SA with a rotated key | **Supported** — same pattern repeated per landing zone in the `landing-zone` module | Service Accounts, Secrets Manager |
-| L1-05 | | Pipeline-to-cloud authentication | STACKIT Git pipelines need a secure way to reach STACKIT Cloud/Terraform state without hardcoding credentials | **Supported** — documented pattern: a dedicated "pipelines" user is created in Secrets Manager (Vault-compatible API), its username/password is stored as a STACKIT Git repository/organization secret, and the `hashicorp/vault-action` (GitHub Actions-compatible) retrieves the actual service-account key at runtime for Terraform/OpenTofu to use.[^1] | Secrets Manager, STACKIT Git Pipeline secrets |
-| L1-06 | | Human SSO / external IdP (e.g. Entra ID) | Organization login federated to a corporate identity provider | **Supported, platform-level** — STACKIT IdP supports SAML 2.0, generic OIDC, Google Workspace, and a dedicated Microsoft Entra ID Enterprise App integration, with SCIM-based provisioning for automated deprovisioning. Configured via a STACKIT support ticket, not self-service, and not modeled in the Terraform accelerator (it's an org-level platform setting, not a resource the provider manages).[^2] | STACKIT IdP |
+| L1-02 | 4 | Group-based role assignment | Assign a role to a group instead of listing individual emails | **Missing** — `role_assignments.subject` only accepts a user or service-account email; no group construct exists in the accelerator | Authorization (would need external group→role mapping, not modeled) |
+| L1-03 | 4 | Service accounts for automation | Pipelines authenticate as a dedicated SA, not personal credentials | **Supported** — `management` module provisions an automation SA with a 60-day rotating key (90-day TTL) | Service Accounts, Secrets Manager |
+| L1-04 | 3 | Workload-scoped service account | Each workload gets its own SA with a rotated key | **Supported** — same pattern repeated per landing zone in the `landing-zone` module | Service Accounts, Secrets Manager |
+| L1-05 | 5 | Pipeline-to-cloud authentication | STACKIT Git pipelines need a secure way to reach STACKIT Cloud/Terraform state without hardcoding credentials | **Supported** — documented pattern: a dedicated "pipelines" user is created in Secrets Manager (Vault-compatible API), its username/password is stored as a STACKIT Git repository/organization secret, and the `hashicorp/vault-action` (GitHub Actions-compatible) retrieves the actual service-account key at runtime for Terraform/OpenTofu to use.[^1] | Secrets Manager, STACKIT Git Pipeline secrets |
+| L1-06 | 4 | Human SSO / external IdP (e.g. Entra ID) | Organization login federated to a corporate identity provider | **Supported, platform-level** — STACKIT IdP supports SAML 2.0, generic OIDC, Google Workspace, and a dedicated Microsoft Entra ID Enterprise App integration, with SCIM-based provisioning for automated deprovisioning. Configured via a STACKIT support ticket, not self-service, and not modeled in the Terraform accelerator (it's an org-level platform setting, not a resource the provider manages).[^2] | STACKIT IdP |
 | L1-07 | 5 | Per-project role scoping | A workload team sees only its own project | **Supported** — every landing zone is an isolated project with its own `role_assignments` | Resource Manager (project isolation) + Authorization |
 
 ## Layer 2 — Platform automation & state management
@@ -59,7 +59,7 @@ Not a feature layer on its own — a quality requirement across **all** layers b
 | L2-01 | 5 | Dedicated management project | Platform automation lives apart from customer workloads | **Supported** — `management` module (`<code>-pltfm-mgmt-prod`) | Resource Manager |
 | L2-02 | 5 | Remote state storage for the IaC codebase | Versioned, access-controlled Terraform/OpenTofu state | **Supported** — Object Storage bucket in `management` module | Object Storage |
 | L2-03 | 5 | Central secrets storage for platform credentials | Rotated keys and platform credentials never live in tfvars or CI variables | **Supported** — Secrets Manager instance in `management` module | Secrets Manager |
-| L2-04 | | CI/CD pipeline applying the IaC (plan reviewed before apply) | Pull-request-driven change management | **Missing from the accelerator itself** — it ships no pipeline definitions (e.g. workflow files) at all; the delivery team has to author these, using the pipeline-to-cloud authentication pattern described in Layer 1.[^1] | STACKIT Git Pipelines (GitHub Actions-compatible) + Secrets Manager |
+| L2-04 | 5 | CI/CD pipeline applying the IaC (plan reviewed before apply) | Pull-request-driven change management | **Missing from the accelerator itself** — it ships no pipeline definitions (e.g. workflow files) at all; the delivery team has to author these, using the pipeline-to-cloud authentication pattern described in Layer 1.[^1] | STACKIT Git Pipelines (GitHub Actions-compatible) + Secrets Manager |
 
 ## Layer 3 — Networking foundation
 
@@ -68,29 +68,29 @@ Not a feature layer on its own — a quality requirement across **all** layers b
 | L3-01 | 5 | Shared private address space | All corporate landing zones (STACKIT projects) under the same customer account can reach each other over private IPs | **Supported** — `connectivity` module, STACKIT Network Area, configurable ranges/prefix lengths | Network Area (SNA) |
 | L3-02 | 5 | WAN routing table for internet egress | Defined default route for outbound traffic | **Supported** — `connectivity` module `wan` routing table | Routing Tables |
 | L3-03 | 5 | DNS zones with automatic per-workload delegation | Each workload gets a child zone without manual DNS work | **Supported** — hub zone in `connectivity`, auto-delegated child zone per workload in `landing-zone` | DNS |
-| L3-04 | | Address plan decided upfront (range, subnet sizing rules) | Total range and min/max/default subnet size fixed before onboarding | **Supported** — `network_area` config block (`min_prefix_length`, `max_prefix_length`, `default_prefix_length`) | Network Area |
+| L3-04 | 5 | Address plan decided upfront (range, subnet sizing rules) | Total range and min/max/default subnet size fixed before onboarding | **Supported** — `network_area` config block (`min_prefix_length`, `max_prefix_length`, `default_prefix_length`) | Network Area |
 | L3-05 | 5 | Standalone/internet-facing networking (public LZ) | Workloads that don't need private connectivity get an independent network | **Supported** — `landing-zone` module, `corporate = false` path | Network |
 
 ## Layer 4 — Security guardrails: network & firewall
 
 | ID | Priority | Feature | Description | Status | STACKIT service(s) |
 |---|---|---|---|---|---|
-| L4-01 | | Firewall at the network boundary | Inspects traffic between workloads and the internet | **Supported, optional** — one of three deployment flavors (`connectivity` module OPNsense VM); the Standalone and Hub-Spoke flavors ship without it | Compute (VM) + Network |
-| L4-02 | | Default-deny once configured | Explicit allow rules only | **Supported, with a caveat** — `firewall-config` module pushes the policy; the appliance is unconfigured and its GUI reachable from the internet between the two required applies (documented risk window) | firewall-config module / OPNsense |
-| L4-03 | | Centralized egress with a stable public IP | Useful for customer-side allow-listing | **Supported** — static public IP on the firewall WAN interface | Public IP |
-| L4-04 | | HA firewall pair (no single point of failure) | Active/passive CARP pair, ~1s failover | **Supported, optional** — `connectivity.firewall.ha` | Compute + Network |
-| L4-05 | | Documented traffic paths (incl. VPN handling) | Clarity on what does/doesn't pass through the firewall | **Supported, as documentation** — `architecture.md` explicitly documents that both VPN directions bypass the appliance | n/a (design documentation) |
+| L4-01 | 3 | Firewall at the network boundary | Inspects traffic between workloads and the internet | **Supported, optional** — one of three deployment flavors (`connectivity` module OPNsense VM); the Standalone and Hub-Spoke flavors ship without it | Compute (VM) + Network |
+| L4-02 | 3 | Default-deny once configured | Explicit allow rules only | **Supported, with a caveat** — `firewall-config` module pushes the policy; the appliance is unconfigured and its GUI reachable from the internet between the two required applies (documented risk window) | firewall-config module / OPNsense |
+| L4-03 | 3 | Centralized egress with a stable public IP | Useful for customer-side allow-listing | **Supported** — static public IP on the firewall WAN interface | Public IP |
+| L4-04 | 3 | HA firewall pair (no single point of failure) | Active/passive CARP pair, ~1s failover | **Supported, optional** — `connectivity.firewall.ha` | Compute + Network |
+| L4-05 | 3 | Documented traffic paths (incl. VPN handling) | Clarity on what does/doesn't pass through the firewall | **Supported, as documentation** — `architecture.md` explicitly documents that both VPN directions bypass the appliance | n/a (design documentation) |
 | L4-06 | 5 | Security Groups baseline (instance/subnet-level filtering) | Default-deny traffic filtering that works even without deploying the optional firewall VM | **Partial** — `stackit_security_group`/`_rule` resources exist and are used, but only to lock down the `debug-bastion` module's SSH access; no baseline Security Group is applied to landing zone VMs/networks in general | Security Groups |
 
 ## Layer 5 — Security guardrails: policy-as-code & compliance
 
 | ID | Priority | Feature | Description | Status | STACKIT service(s) |
 |---|---|---|---|---|---|
-| L5-01 | | General policy-as-code guardrail framework | Org-wide rules (allowed regions, SKUs, mandatory tags, etc.) enforced automatically | **Missing** — the accelerator has no broad guardrail engine; the only policy artifact is a single Kubernetes rule (see below) | Not modeled — would need e.g. OPA/Conftest in CI, or a policy product |
-| L5-02 | | Region enforcement | Deployments blocked outside approved regions | **Partial** — `region` defaults to `eu01` and is threaded through, but nothing prevents targeting another region | n/a (convention only, not enforced) |
+| L5-01 | 4 | General policy-as-code guardrail framework | Org-wide rules (allowed regions, SKUs, mandatory tags, etc.) enforced automatically | **Missing** — the accelerator has no broad guardrail engine; the only policy artifact is a single Kubernetes rule (see below) | Not modeled — would need e.g. OPA/Conftest in CI, or a policy product |
+| L5-02 | 3 | Region enforcement | Deployments blocked outside approved regions | **Partial** — `region` defaults to `eu01` and is threaded through, but nothing prevents targeting another region | n/a (convention only, not enforced) |
 | L5-03 | 5 | CSPM / continuous compliance scanning | Ongoing posture scanning and drift detection against a baseline | **Supported, platform-level** — STACKIT Cloud Security Posture Management (CSPM) is a native, fully-managed dashboard offering automated misconfiguration/vulnerability detection and guided mitigation, with no agent or local deployment; it's a STACKIT Portal feature, not something the Terraform accelerator configures or wires up[^3] | STACKIT CSPM |
-| L5-04 | | Secrets-in-Kubernetes guardrail | Workloads can't create raw `Secret` objects, forcing use of the managed secrets path | **Supported** — Kyverno policy blocks direct `Secret` creation in demo namespaces | Kyverno (self-hosted on SKE) + Secrets Manager |
-| L5-05 | | Break-glass exception process | Documented, auditable way to bypass a guardrail under control | **Supported, firewall only** — `firewall_config.break_glass` block for the firewall's audit mode | firewall-config module |
+| L5-04 | 2 | Secrets-in-Kubernetes guardrail | Workloads can't create raw `Secret` objects, forcing use of the managed secrets path | **Supported** — Kyverno policy blocks direct `Secret` creation in demo namespaces | Kyverno (self-hosted on SKE) + Secrets Manager |
+| L5-05 | 3 | Break-glass exception process | Documented, auditable way to bypass a guardrail under control | **Supported, firewall only** — `firewall_config.break_glass` block for the firewall's audit mode | firewall-config module |
 
 ## Layer 6 — Observability & audit
 
@@ -98,10 +98,10 @@ Not a feature layer on its own — a quality requirement across **all** layers b
 |---|---|---|---|---|---|
 | L6-01 | 5 | Central audit log (org/project level) | Who changed what, retained for investigation | **Supported** — `management` module `audit_logs`: Telemetry Link → Telemetry Router → Logs instance + archive bucket, optional WORM (`s3_object_lock`) | Telemetry Router, Logs, Object Storage |
 | L6-02 | 5 | Metrics, logs, traces for platform health | Baseline observability for the platform itself | **Supported** — `observability` block in `management` and `platform-kubernetes` modules | Observability |
-| L6-03 | | Metrics, logs, traces per workload | Same baseline, scoped to each landing zone | **Supported, optional** — `observability` block in `landing-zone` module | Observability |
+| L6-03 | 5 | Metrics, logs, traces per workload | Same baseline, scoped to each landing zone | **Supported, optional** — `observability` block in `landing-zone` module | Observability |
 | L6-04 | 5 | Configurable retention for compliance | Retention tuned per data type, not one blanket setting | **Supported** — separate retention variables for logs/traces/metrics/downsampled metrics and archive retention | Observability, Object Storage |
 | L6-05 | | Dashboards | Ready-made views instead of raw metrics | **Supported, demo only** — `namespace-service-demo` provisions a Grafana folder/dashboard | Grafana on Observability |
-| L6-06 | | External telemetry export (e.g. New Relic) | Route audit logs/telemetry to a third-party observability tool the customer already uses, alongside STACKIT-native storage | **Missing from the accelerator, but available on STACKIT** — Telemetry Router destinations can forward in parallel to any OpenTelemetry-compatible endpoint (Basic or Token auth) in addition to the existing Logs/Object Storage destinations; New Relic ingests OTLP natively. The Terraform resource (`stackit_telemetryrouter_destination`) exists, but the accelerator's `audit_logs` only wires up STACKIT-internal destinations today[^5] | Telemetry Router (+ external OTLP endpoint, e.g. New Relic) |
+| L6-06 | 3 | External telemetry export (e.g. New Relic) | Route audit logs/telemetry to a third-party observability tool the customer already uses, alongside STACKIT-native storage | **Missing from the accelerator, but available on STACKIT** — Telemetry Router destinations can forward in parallel to any OpenTelemetry-compatible endpoint (Basic or Token auth) in addition to the existing Logs/Object Storage destinations; New Relic ingests OTLP natively. The Terraform resource (`stackit_telemetryrouter_destination`) exists, but the accelerator's `audit_logs` only wires up STACKIT-internal destinations today[^5] | Telemetry Router (+ external OTLP endpoint, e.g. New Relic) |
 
 ## Layer 7 — Kubernetes platform (shared cluster)
 
@@ -109,12 +109,12 @@ Not represented as its own layer in the original background document, but the ac
 
 | ID | Priority | Feature | Description | Status | STACKIT service(s) |
 |---|---|---|---|---|---|
-| L7-01 | | Managed Kubernetes cluster | Shared cluster with configurable node pools and maintenance windows | **Supported, optional** — `platform-kubernetes` module | STACKIT Kubernetes Engine (SKE) |
-| L7-02 | | Per-tenant namespace isolation | Each workload gets its own namespace, scoped SA and Role | **Supported** — `namespace-service-demo` module | SKE |
-| L7-03 | | Encrypted volumes (KMS-backed) | Storage class backed by a customer-managed key | **Supported, optional** | SKE + KMS |
-| L7-04 | | Debug bastion | Controlled path for cluster troubleshooting | **Supported, optional** | Compute (VM) |
-| L7-05 | | Blocks direct Kubernetes Secret management | Forces use of the managed secrets path (see Layer 5) | **Supported** — Kyverno policy | Kyverno + Secrets Manager |
-| L7-06 | | Ingress/gateway + DNS record automation | A deployed service gets a working hostname automatically | **Supported, demo only** — `sample_load` demo proves the Gateway API route + DNS record path | SKE + DNS |
+| L7-01 | 1 | Managed Kubernetes cluster | Shared cluster with configurable node pools and maintenance windows | **Supported, optional** — `platform-kubernetes` module | STACKIT Kubernetes Engine (SKE) |
+| L7-02 | 1 | Per-tenant namespace isolation | Each workload gets its own namespace, scoped SA and Role | **Supported** — `namespace-service-demo` module | SKE |
+| L7-03 | 1 | Encrypted volumes (KMS-backed) | Storage class backed by a customer-managed key | **Supported, optional** | SKE + KMS |
+| L7-04 | 1 | Debug bastion | Controlled path for cluster troubleshooting | **Supported, optional** | Compute (VM) |
+| L7-05 | 1 | Blocks direct Kubernetes Secret management | Forces use of the managed secrets path (see Layer 5) | **Supported** — Kyverno policy | Kyverno + Secrets Manager |
+| L7-06 | 1 | Ingress/gateway + DNS record automation | A deployed service gets a working hostname automatically | **Supported, demo only** — `sample_load` demo proves the Gateway API route + DNS record path | SKE + DNS |
 
 ## Layer 8 — Workload landing zones (per team / per environment)
 
@@ -128,18 +128,18 @@ Not represented as its own layer in the original background document, but the ac
 
 | ID | Priority | Feature | Description | Status | STACKIT service(s) |
 |---|---|---|---|---|---|
-| L9-01 | | Managed database instance reachable from a workload project | A workload can provision and connect to a managed DB | **Missing from the accelerator, but available on STACKIT** — the STACKIT Terraform provider has an actively maintained `postgresflex` service (`stackit_postgresflex_instance`, `_user`, `_database`); it's just not wired into the `landing-zone` module today | STACKIT PostgreSQL Flex, Secrets Manager |
-| L9-02 | | Small containerized application | A workload team can run a container without platform decisions left to make | **Partial** — only exists as a demo on the shared K8s platform (`sample_load`); there's no equivalent pattern for VM-based/non-K8s landing zones | SKE (demo only) |
-| L9-03 | | VM-based application hosting (Linux Server) | A workload team can run an application directly on a VM, without needing the Kubernetes platform at all | **Missing from the accelerator** — `stackit_server` is only used for the firewall and debug bastion; there's no landing-zone pattern for provisioning a plain application VM | Linux Server (Compute Engine), `stackit_server` |
-| L9-04 | | Automated OS patch management | Servers stay patched against known vulnerabilities on a schedule, without manual intervention | **Missing from the accelerator, but available on STACKIT** — the STACKIT Terraform provider has `stackit_server_update_enable` and `stackit_server_update_schedule` resources for scheduled OS updates (Windows & Linux) with fast-track emergency patching; not wired into any accelerator module[^4] | STACKIT Server Update Management |
-| L9-05 | | Automated server backups | Scheduled, monitored backups of workload VM volumes with configurable retention and restore | **Missing from the accelerator, but available on STACKIT** — the STACKIT Terraform provider has `stackit_server_backup_enable` and `stackit_server_backup_schedule` resources for custom backup schedules, configurable retention, and restoring a volume backup to a new volume; not wired into any accelerator module[^4] | STACKIT Server Backup Management |
-| L9-06 | | Public load balancer in front of a workload VM | Traffic distributed across one or more VMs with health checks, instead of pointing DNS at a single VM's IP | **Missing from the accelerator** — the STACKIT Terraform provider has `stackit_loadbalancer` (Network Load Balancer) and `stackit_application_load_balancer` resources; neither is used anywhere in the accelerator, and the only `LoadBalancer` reference is a Kubernetes-internal Service type inside the K8s demo[^4] | STACKIT Network/Application Load Balancer |
+| L9-01 | 2 | Managed database instance reachable from a workload project | A workload can provision and connect to a managed DB | **Missing from the accelerator, but available on STACKIT** — the STACKIT Terraform provider has an actively maintained `postgresflex` service (`stackit_postgresflex_instance`, `_user`, `_database`); it's just not wired into the `landing-zone` module today | STACKIT PostgreSQL Flex, Secrets Manager |
+| L9-02 | 2 | Small containerized application | A workload team can run a container without platform decisions left to make | **Partial** — only exists as a demo on the shared K8s platform (`sample_load`); there's no equivalent pattern for VM-based/non-K8s landing zones | SKE (demo only) |
+| L9-03 | 2 | VM-based application hosting (Linux Server) | A workload team can run an application directly on a VM, without needing the Kubernetes platform at all | **Missing from the accelerator** — `stackit_server` is only used for the firewall and debug bastion; there's no landing-zone pattern for provisioning a plain application VM | Linux Server (Compute Engine), `stackit_server` |
+| L9-04 | 2 | Automated OS patch management | Servers stay patched against known vulnerabilities on a schedule, without manual intervention | **Missing from the accelerator, but available on STACKIT** — the STACKIT Terraform provider has `stackit_server_update_enable` and `stackit_server_update_schedule` resources for scheduled OS updates (Windows & Linux) with fast-track emergency patching; not wired into any accelerator module[^4] | STACKIT Server Update Management |
+| L9-05 | 2 | Automated server backups | Scheduled, monitored backups of workload VM volumes with configurable retention and restore | **Missing from the accelerator, but available on STACKIT** — the STACKIT Terraform provider has `stackit_server_backup_enable` and `stackit_server_backup_schedule` resources for custom backup schedules, configurable retention, and restoring a volume backup to a new volume; not wired into any accelerator module[^4] | STACKIT Server Backup Management |
+| L9-06 | 2 | Public load balancer in front of a workload VM | Traffic distributed across one or more VMs with health checks, instead of pointing DNS at a single VM's IP | **Missing from the accelerator** — the STACKIT Terraform provider has `stackit_loadbalancer` (Network Load Balancer) and `stackit_application_load_balancer` resources; neither is used anywhere in the accelerator, and the only `LoadBalancer` reference is a Kubernetes-internal Service type inside the K8s demo[^4] | STACKIT Network/Application Load Balancer |
 
 ## Layer 10 — Optional extras
 
 | ID | Priority | Feature | Description | Status | STACKIT service(s) |
 |---|---|---|---|---|---|
-| L10-01 | | Site-to-site VPN | Connects the shared address space to on-premises or another cloud | **Supported, optional** — `connectivity.vpn` block, HA dual-tunnel gateway, two-phase apply (gateway first, then connections once peer IPs are known) | IPsec VPN Gateway |
+| L10-01 | 0 | Site-to-site VPN | Connects the shared address space to on-premises or another cloud | **Supported, optional** — `connectivity.vpn` block, HA dual-tunnel gateway, two-phase apply (gateway first, then connections once peer IPs are known) | IPsec VPN Gateway |
 
 ## Next step
 
