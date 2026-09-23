@@ -9,4 +9,4 @@
 
 # Cloud resources
 
-Solita will provide a Cloud Account and Stackit Git for the project (ETA on week 38).
+Customer will provide a Cloud Account and Stackit Git for the project (ETA on week 38).
